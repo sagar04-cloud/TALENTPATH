@@ -13,7 +13,6 @@ import {
 import { authService, formatAuthError } from '../services/authService';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { SEOHead } from '../components/common/SEOHead';
-import { GoogleAccountChooserModal } from '../components/auth/GoogleAccountChooserModal';
 
 export const AuthPage = () => {
   const [searchParams] = useSearchParams();
@@ -36,9 +35,6 @@ export const AuthPage = () => {
 
   // Existing session management
   const [existingSession, setExistingSession] = useState<any | null>(null);
-
-  // Google Account Chooser Modal state
-  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
 
   const redirectParam = searchParams.get('redirect');
   const reasonParam = searchParams.get('reason');
@@ -77,27 +73,7 @@ export const AuthPage = () => {
   }, [searchParams, location.pathname]);
 
 
-  const handleSelectGoogleAccount = async (googleEmail: string, googleName?: string) => {
-    setLoading(true);
-    setError(null);
-    setSuccessMsg(null);
-    try {
-      const roleToAssign = requestAdmin ? 'admin' : 'user';
-      const res = await authService.signInWithGoogleAccount(googleEmail, googleName, roleToAssign);
-      if (res.user) {
-        setIsGoogleModalOpen(false);
-        navigate(getRedirectDestination(res.user?.role));
-      } else {
-        setError(res.error || 'Failed to sign in with Google account.');
-      }
-    } catch (err: any) {
-      setError(formatAuthError(err, 'google'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGoogleSignInDirect = async () => {
+  const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
@@ -105,26 +81,18 @@ export const AuthPage = () => {
       const roleToAssign = requestAdmin ? 'admin' : 'user';
       const res = await authService.signInWithGoogle(roleToAssign);
       if (res.user) {
-        setIsGoogleModalOpen(false);
         navigate(getRedirectDestination(res.user?.role));
-      } else {
-        // If popup was cancelled or closed or blocked, seamlessly offer Google Account Chooser
-        setIsGoogleModalOpen(true);
-        if (res.error && res.code !== 'auth/popup-closed-by-user') {
+      } else if (res.error) {
+        if (res.code !== 'auth/popup-closed-by-user') {
           setError(res.error);
         }
       }
     } catch (err: any) {
-      console.warn('Google signin direct note:', err);
-      setIsGoogleModalOpen(true);
+      console.warn('Google sign-in error:', err);
       setError(formatAuthError(err, 'google'));
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleLaunchGooglePopup = async () => {
-    await handleGoogleSignInDirect();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -273,9 +241,9 @@ export const AuthPage = () => {
 
           {/* Error & Success Alerts */}
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs flex items-center">
-              <AlertCircle className="w-4 h-4 mr-2 flex-shrink-0" />
-              <span>{error}</span>
+            <div className="p-3.5 bg-red-50 border border-red-200 rounded-2xl text-red-700 text-xs flex items-start">
+              <AlertCircle className="w-4 h-4 mr-2.5 flex-shrink-0 mt-0.5 text-red-600" />
+              <div className="leading-relaxed font-medium">{error}</div>
             </div>
           )}
 
@@ -405,7 +373,7 @@ export const AuthPage = () => {
                 <button
                   type="button"
                   id="google-auth-button"
-                  onClick={handleGoogleSignInDirect}
+                  onClick={handleGoogleSignIn}
                   disabled={loading}
                   className="w-full py-2.5 px-4 rounded-full border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs flex items-center justify-center space-x-2 transition-colors shadow-soft-sm active:scale-[0.99] disabled:opacity-75"
                 >
@@ -417,16 +385,6 @@ export const AuthPage = () => {
                   </svg>
                   <span>{loading ? 'Connecting with Google...' : mode === 'signup' ? 'Sign Up with Google' : 'Sign In with Google'}</span>
                 </button>
-
-                <div className="text-center mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setIsGoogleModalOpen(true)}
-                    className="text-[11px] text-slate-400 hover:text-brand-blue font-medium transition-colors"
-                  >
-                    Having trouble? Choose a Google account directly &rarr;
-                  </button>
-                </div>
               </div>
             )}
           </form>
@@ -459,16 +417,6 @@ export const AuthPage = () => {
           </div>
 
         </div>
-
-        {/* Google Account Chooser Dialogue */}
-        <GoogleAccountChooserModal
-          isOpen={isGoogleModalOpen}
-          onClose={() => setIsGoogleModalOpen(false)}
-          onSelectAccount={handleSelectGoogleAccount}
-          onLaunchPopup={handleLaunchGooglePopup}
-          mode={mode}
-          loading={loading}
-        />
       </section>
     </>
   );

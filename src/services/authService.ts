@@ -185,10 +185,11 @@ export function formatAuthError(error: any, context?: 'google' | 'email'): strin
     return 'This sign-in method is not enabled yet in your Firebase Console. Please enable it under Firebase Console > Authentication > Sign-in method.';
   }
   if (code === 'auth/unauthorized-domain' || msg.includes('auth/unauthorized-domain')) {
-    return 'This domain is not authorized for Google Sign-In in Firebase. In Firebase Console, go to Authentication > Settings > Authorized domains and ensure your domain (localhost) is added.';
+    const domain = typeof window !== 'undefined' ? window.location.hostname : 'your domain';
+    return `This domain (${domain}) is not authorized for Google Sign-In in Firebase. In Firebase Console, go to Authentication > Settings > Authorized domains and add "${domain}".`;
   }
   if (code === 'auth/popup-blocked' || msg.includes('auth/popup-blocked')) {
-    return 'The Google sign-in popup was blocked by your browser. Please allow popups for this site or use the Google Fast Sign-In option.';
+    return 'The Google sign-in popup was blocked by your browser. Please allow popups for this site and tap "Sign In with Google" again.';
   }
   if (code === 'auth/popup-closed-by-user' || msg.includes('auth/popup-closed-by-user')) {
     return 'Google sign-in was cancelled because the popup window was closed before completing.';
@@ -589,69 +590,6 @@ export const authService = {
     }
   },
 
-  /**
-   * Direct Google Account Sign In & Registration
-   * Guarantees instant login with Google profile even if OAuth popup is blocked or provider is pending in Firebase Console
-   */
-  async signInWithGoogleAccount(
-    googleEmail: string, 
-    fullName?: string, 
-    requestedRole: UserRole = 'user'
-  ): Promise<{ user: UserAccount | null; error?: string }> {
-    const cleanEmail = googleEmail.trim().toLowerCase();
-    if (!cleanEmail || !cleanEmail.includes('@')) {
-      return { user: null, error: 'Please enter a valid Google email address.' };
-    }
-
-    const cleanName = (fullName || cleanEmail.split('@')[0]).trim();
-    const roleToAssign: UserRole = (cleanEmail === 'admin@talentpathsolutions.com' || cleanEmail === 'sagaru.works@gmail.com' || requestedRole === 'admin')
-      ? 'admin'
-      : 'user';
-
-    const existingUsers = getStoredUsers();
-    const existing = existingUsers.find(u => u.email.toLowerCase() === cleanEmail);
-    const userId = existing?.id || `usr-google-${Date.now()}`;
-
-    const userAccount: UserAccount = {
-      id: userId,
-      email: cleanEmail,
-      full_name: existing?.full_name || cleanName,
-      phone: existing?.phone || '',
-      role: existing?.role || roleToAssign,
-      is_verified: true,
-      created_at: existing?.created_at || new Date().toISOString()
-    };
-
-    // Save to Firebase Realtime Database
-    if (isFirebaseConfigured()) {
-      try {
-        const rtdb = getFirebaseRtdb();
-        if (rtdb) {
-          set(ref(rtdb, `users/${userId}`), userAccount).catch(e => console.warn('RTDB save Google user note:', e));
-        }
-        const db = getFirebaseDb();
-        if (db) {
-          setDoc(doc(db, 'users', userId), userAccount).catch(e => console.warn('Firestore save Google user note:', e));
-        }
-      } catch (e) {
-        console.warn('Cloud sync note:', e);
-      }
-    }
-
-    // Save to local store
-    if (existing) {
-      const idx = existingUsers.findIndex(u => u.email.toLowerCase() === cleanEmail);
-      existingUsers[idx] = { ...existingUsers[idx], ...userAccount };
-      setStoredUsers(existingUsers);
-    } else {
-      setStoredUsers([...existingUsers, userAccount]);
-    }
-
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userAccount));
-    notifyAuthState(userAccount);
-
-    return { user: userAccount };
-  },
 
   /**
    * Sign Out
