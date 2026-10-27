@@ -1,0 +1,7 @@
+# robots.txt for Talent Path Solutions
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/*
+
+Sitemap: https://talentpathsolutions.com/sitemap.xml
