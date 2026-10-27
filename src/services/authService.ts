@@ -380,7 +380,7 @@ export const authService = {
             await updateProfile(fbUser, { displayName: cleanName });
           } catch {}
 
-          const roleToAssign: UserRole = (cleanEmail === 'admin@talentpathsolutions.com' || cleanEmail === 'sagaru.works@gmail.com' || requestedRole === 'admin') 
+          const roleToAssign: UserRole = (cleanEmail === 'admin@talentpathsolutions.com' || cleanEmail === 'sagaru.works@gmail.com') 
             ? 'admin' 
             : 'user';
 
@@ -434,7 +434,7 @@ export const authService = {
       return { user: null, error: 'An account with this email address already exists. Please Sign In.' };
     }
 
-    const roleToAssign: UserRole = (cleanEmail === 'admin@talentpathsolutions.com' || cleanEmail === 'sagaru.works@gmail.com' || requestedRole === 'admin') 
+    const roleToAssign: UserRole = (cleanEmail === 'admin@talentpathsolutions.com' || cleanEmail === 'sagaru.works@gmail.com') 
       ? 'admin' 
       : 'user';
 
@@ -531,7 +531,7 @@ export const authService = {
       const existingLocal = existing.find(u => u.email.toLowerCase() === cleanEmail || u.id === fbUser.uid);
 
       let role: UserRole = existingLocal?.role || (
-        (cleanEmail === 'admin@talentpathsolutions.com' || cleanEmail === 'sagaru.works@gmail.com' || requestedRole === 'admin') 
+        (cleanEmail === 'admin@talentpathsolutions.com' || cleanEmail === 'sagaru.works@gmail.com') 
           ? 'admin' 
           : 'user'
       );

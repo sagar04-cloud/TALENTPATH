@@ -8,11 +8,13 @@ import {
   ShieldCheck, 
   ArrowRight, 
   AlertCircle, 
-  CheckCircle2
+  CheckCircle2,
+  MessageCircle
 } from 'lucide-react';
 import { authService, formatAuthError } from '../services/authService';
 import { isFirebaseConfigured } from '../lib/firebase';
 import { SEOHead } from '../components/common/SEOHead';
+import { COMPANY_CONFIG } from '../config/company';
 
 export const AuthPage = () => {
   const [searchParams] = useSearchParams();
@@ -27,7 +29,6 @@ export const AuthPage = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [requestAdmin, setRequestAdmin] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,8 +79,7 @@ export const AuthPage = () => {
     setError(null);
     setSuccessMsg(null);
     try {
-      const roleToAssign = requestAdmin ? 'admin' : 'user';
-      const res = await authService.signInWithGoogle(roleToAssign);
+      const res = await authService.signInWithGoogle('user');
       if (res.user) {
         navigate(getRedirectDestination(res.user?.role));
       } else if (res.error) {
@@ -123,8 +123,7 @@ export const AuthPage = () => {
           return;
         }
 
-        const roleToAssign = requestAdmin ? 'admin' : 'user';
-        const res = await authService.signUp(fullName, email, password, phoneNumber, roleToAssign);
+        const res = await authService.signUp(fullName, email, password, phoneNumber, 'user');
 
         if (res.user) {
           setSuccessMsg('Account registered successfully! Redirecting to home...');
@@ -336,22 +335,7 @@ export const AuthPage = () => {
               </div>
             </div>
 
-            {mode === 'signup' && (
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-1.5">
-                <label className="flex items-center space-x-2 cursor-pointer text-slate-700 font-semibold text-xs">
-                  <input
-                    type="checkbox"
-                    checked={requestAdmin}
-                    onChange={(e) => setRequestAdmin(e.target.checked)}
-                    className="rounded text-brand-blue focus:ring-brand-blue"
-                  />
-                  <span>Create with Administrative Clearance (Staff Access)</span>
-                </label>
-                <p className="text-[10px] text-slate-400 pl-6">
-                  Check this if you are a counselor or authorized company team member to unlock the CRM management panel.
-                </p>
-              </div>
-            )}
+
 
             <button
               type="submit"
@@ -385,6 +369,18 @@ export const AuthPage = () => {
                   </svg>
                   <span>{loading ? 'Connecting with Google...' : mode === 'signup' ? 'Sign Up with Google' : 'Sign In with Google'}</span>
                 </button>
+
+                <div className="text-center mt-3">
+                  <a
+                    href={`https://wa.me/${COMPANY_CONFIG.whatsapp.raw}?text=${encodeURIComponent('Hello Talent Path Solutions! I am having trouble signing in to my account. Please assist me.')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center space-x-1.5 text-[11px] text-slate-500 hover:text-emerald-600 font-medium transition-colors group"
+                  >
+                    <MessageCircle className="w-3.5 h-3.5 text-emerald-500 group-hover:scale-110 transition-transform" />
+                    <span>Having trouble? Chat with us on WhatsApp &rarr;</span>
+                  </a>
+                </div>
               </div>
             )}
           </form>
